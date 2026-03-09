@@ -1,0 +1,128 @@
+import { Link, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  CalendarDays,
+  BookMarked,
+  User,
+  GraduationCap,
+  LogOut,
+  ChevronLeft,
+  Menu,
+} from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
+
+const navItems = [
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { label: 'Browse Events', path: '/dashboard/events', icon: CalendarDays },
+  { label: 'My Registrations', path: '/dashboard/my-registrations', icon: BookMarked },
+  { label: 'My Profile', path: '/dashboard/profile', icon: User },
+];
+
+interface UserSidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+const UserSidebar = ({ collapsed, onToggle }: UserSidebarProps) => {
+  const location = useLocation();
+  const { currentUser, logout } = useAuthStore();
+
+  const isActive = (path: string) => {
+    if (path === '/dashboard') return location.pathname === '/dashboard';
+    return location.pathname.startsWith(path);
+  };
+
+  return (
+    <aside
+      className={cn(
+        'h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 flex-shrink-0',
+        collapsed ? 'w-16' : 'w-64'
+      )}
+    >
+      {/* Logo */}
+      <div className={cn('flex items-center gap-3 p-4 border-b border-sidebar-border', collapsed && 'justify-center')}>
+        <div className="bg-sidebar-primary rounded-lg p-1.5 flex-shrink-0">
+          <GraduationCap className="h-5 w-5 text-white" />
+        </div>
+        {!collapsed && (
+          <span className="font-bold text-sidebar-foreground text-sm leading-tight">
+            EduActivity<br />
+            <span className="text-sidebar-primary font-normal text-xs">Student Portal</span>
+          </span>
+        )}
+        <button
+          onClick={onToggle}
+          className={cn('ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground', collapsed && 'ml-0 mt-0')}
+        >
+          {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        {navItems.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              title={collapsed ? item.label : undefined}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                active
+                  ? 'bg-sidebar-primary/20 text-sidebar-primary border border-sidebar-primary/30'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+              )}
+            >
+              <item.icon className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span>{item.label}</span>}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-sidebar-border">
+        {!collapsed && currentUser && (
+          <div className="flex items-center gap-2 px-2 py-2 mb-2">
+            <div className="h-8 w-8 rounded-full bg-sidebar-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sidebar-foreground text-xs font-medium truncate">{currentUser.name}</p>
+              <p className="text-sidebar-foreground/50 text-xs truncate">{currentUser.email}</p>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={logout}
+          title={collapsed ? 'Logout' : undefined}
+          className={cn(
+            'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors',
+            collapsed && 'justify-center'
+          )}
+        >
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span>Logout</span>}
+        </button>
+      </div>
+    </aside>
+  );
+};
+
+export const UserLayout = ({ children }: { children: React.ReactNode }) => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div className="flex h-screen bg-background overflow-hidden">
+      <UserSidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
+};
+
+export default UserSidebar;
