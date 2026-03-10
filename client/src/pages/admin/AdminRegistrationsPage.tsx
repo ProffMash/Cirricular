@@ -1,21 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRegistrationStore } from '@/stores/registrationStore';
-import { useAuthStore } from '@/stores/authStore';
 import { useEventStore } from '@/stores/eventStore';
 import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
-import { ClipboardList, Download, Search, X } from 'lucide-react';
+import { ClipboardList, Download, Search, X, Loader2 } from 'lucide-react';
+import { fetchUsers } from '@/api/usersApi';
+import { User } from '@/types';
 
 const AdminRegistrationsPage = () => {
   const { registrations } = useRegistrationStore();
-  const { users } = useAuthStore();
   const { events } = useEventStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
   const [eventFilter, setEventFilter] = useState('all');
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers()
+      .then((data) => setUsers(data))
+      .catch(() => setUsers([]))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = registrations.filter((reg) => {
-    const user = users.find((u) => u.id === reg.userId);
+    const user = users.find((u) => String(u.id) === reg.userId);
     const event = events.find((e) => e.id === reg.eventId);
     const matchesSearch =
       !search ||
@@ -34,7 +43,7 @@ const AdminRegistrationsPage = () => {
   const exportCSV = () => {
     const headers = ['Registration ID', 'Student Name', 'Email', 'Event Title', 'Date', 'Status', 'Registered At'];
     const rows = sorted.map((reg) => {
-      const user = users.find((u) => u.id === reg.userId);
+      const user = users.find((u) => String(u.id) === reg.userId);
       const event = events.find((e) => e.id === reg.eventId);
       return [
         reg.id,
@@ -55,6 +64,14 @@ const AdminRegistrationsPage = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -127,7 +144,7 @@ const AdminRegistrationsPage = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {sorted.map((reg) => {
-                  const user = users.find((u) => u.id === reg.userId);
+                  const user = users.find((u) => String(u.id) === reg.userId);
                   const event = events.find((e) => e.id === reg.eventId);
                   return (
                     <tr key={reg.id} className="hover:bg-muted/30 transition-colors">

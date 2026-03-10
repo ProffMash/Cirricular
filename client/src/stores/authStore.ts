@@ -1,86 +1,80 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { User, UserRole } from '@/types';
-import { mockUsers } from '@/data/mockData';
+import { loginUser, registerUser, LoginResponse } from '@/api/authApi';
+import { setAuthToken } from '@/api/apiClient';
 
 interface AuthState {
   currentUser: User | null;
-  users: User[];
+  token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => { success: boolean; role?: UserRole; error?: string };
+  login: (email: string, password: string) => Promise<{ success: boolean; role?: UserRole; error?: string }>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => { success: boolean; error?: string };
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'bio' | 'phone'>>) => void;
-  updateUserStatus: (userId: string, status: User['status']) => void;
-  getAllUsers: () => User[];
+  setUser: (user: User, token: string) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      currentUser: null,
-      users: mockUsers,
-      isAuthenticated: false,
+const mapLoginResponseToUser = (res: LoginResponse): User => ({
+  id: res.id,
+  email: res.email,
+  username: res.username,
+  name: res.name,
+  role: res.role,
+  avatar: res.avatar,
+  bio: res.bio,
+  phone: res.phone,
+  joinedDate: res.joinedDate,
+});
 
-      login: (email, password) => {
-        const { users } = get();
-        const user = users.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        if (!user) {
-          return { success: false, error: 'Invalid email or password.' };
-        }
-        if (user.status === 'suspended') {
-          return { success: false, error: 'Your account has been suspended. Please contact admin.' };
-        }
-        set({ currentUser: user, isAuthenticated: true });
-        return { success: true, role: user.role };
-      },
+export const useAuthStore = create<AuthState>()((set) => ({
+  currentUser: null,
+  token: null,
+  isAuthenticated: false,
 
-      logout: () => {
-        set({ currentUser: null, isAuthenticated: false });
-      },
+  login: async (email, password) => {
+    try {
+      const res = await loginUser({ email, password });
+      const user = mapLoginResponseToUser(res);
+      setAuthToken(res.token);
+      set({ currentUser: user, token: res.token, isAuthenticated: true });
+      return { success: true, role: user.role };
+    } catch (err: any) {
+      const message = err.response?.data?.error || err.response?.data?.detail || 'Invalid email or password.';
+      return { success: false, error: message };
+    }
+  },
 
-      register: (name, email, password) => {
-        const { users } = get();
-        const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-        if (exists) {
-          return { success: false, error: 'An account with this email already exists.' };
-        }
-        const newUser: User = {
-          id: `user-${Date.now()}`,
-          name,
-          email,
-          password,
-          role: 'user',
-          status: 'active',
-          joinedDate: new Date().toISOString().split('T')[0],
-        };
-        set((state) => ({ users: [...state.users, newUser], currentUser: newUser, isAuthenticated: true }));
-        return { success: true };
-      },
+  logout: () => {
+    setAuthToken(null);
+    set({ currentUser: null, token: null, isAuthenticated: false });
+  },
 
-      updateProfile: (updates) => {
-        set((state) => {
-          if (!state.currentUser) return state;
-          const updatedUser = { ...state.currentUser, ...updates };
-          const updatedUsers = state.users.map((u) =>
-            u.id === updatedUser.id ? updatedUser : u
-          );
-          return { currentUser: updatedUser, users: updatedUsers };
-        });
-      },
+  register: async (name, email, password) => {
+    try {
+      const res = await registerUser({ email, password, name });
+      // Registration returns token but not full user; need to login to get user data
+      // For now just indicate success — user will be redirected to login
+      return { success: true };
+    } catch (err: any) {
+      const message =
+        err.response?.data?.email?.[0] ||
+        err.response?.data?.password?.[0] ||
+        err.response?.data?.detail ||
+        'Registration failed.';
+      return { success: false, error: message };
+    }
+  },
 
-      updateUserStatus: (userId, status) => {
-        set((state) => ({
-          users: state.users.map((u) => (u.id === userId ? { ...u, status } : u)),
-        }));
-      },
+  updateProfile: (updates) => {
+    set((state) => {
+      if (!state.currentUser) return state;
+      const updatedUser = { ...state.currentUser, ...updates };
+      return { currentUser: updatedUser };
+    });
+  },
 
-      getAllUsers: () => {
-        return get().users.filter((u) => u.role === 'user');
-      },
-    }),
-    { name: 'auth-storage', partialize: (state) => ({ currentUser: state.currentUser, users: state.users, isAuthenticated: state.isAuthenticated }) }
-  )
-);
+  setUser: (user, token) => {
+    setAuthToken(token);
+    set({ currentUser: user, token, isAuthenticated: true });
+  },
+}));

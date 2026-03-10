@@ -20,7 +20,7 @@ const LoginPage = () => {
     }
     setIsLoading(true);
     setError('');
-    const result = login(email, password);
+    const result = await login(email, password);
     setIsLoading(false);
     if (!result.success) {
       setError(result.error || 'Login failed.');
@@ -31,12 +31,6 @@ const LoginPage = () => {
     } else {
       navigate('/dashboard');
     }
-  };
-
-  const fillDemo = (type: 'admin' | 'user') => {
-    if (type === 'admin') { setEmail('admin@school.edu'); setPassword('admin123'); }
-    else { setEmail('alex@student.edu'); setPassword('user123'); }
-    setError('');
   };
 
   return (
@@ -87,27 +81,6 @@ const LoginPage = () => {
 
           <h2 className="text-2xl font-bold text-foreground mb-1">Welcome back</h2>
           <p className="text-muted-foreground mb-8">Sign in to access your dashboard</p>
-
-          {/* Demo credentials */}
-          <div className="bg-muted rounded-xl p-4 mb-6">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">DEMO CREDENTIALS</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => fillDemo('user')}
-                className="flex-1 text-xs py-1.5 px-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
-              >
-                Student Login
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('admin')}
-                className="flex-1 text-xs py-1.5 px-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
-              >
-                Admin Login
-              </button>
-            </div>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

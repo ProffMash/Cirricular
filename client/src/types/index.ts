@@ -4,15 +4,15 @@ export type RegistrationStatus = 'confirmed' | 'cancelled';
 export type EventCategory = 'Sports' | 'Arts' | 'Academic' | 'Tech' | 'Cultural' | 'Social';
 
 export interface User {
-  id: string;
-  name: string;
+  id: number;
   email: string;
-  password: string;
+  username: string;
+  name: string;
   role: UserRole;
-  status: UserStatus;
+  avatar: string | null;
+  bio: string | null;
+  phone: string | null;
   joinedDate: string; // ISO date string
-  bio?: string;
-  phone?: string;
 }
 
 export interface Event {
@@ -26,7 +26,7 @@ export interface Event {
   capacity: number;
   registeredCount: number;
   imageUrl?: string;
-  createdBy: string; // admin user id
+  createdBy: number; // admin user id
   createdAt: string;
   isActive: boolean;
 }

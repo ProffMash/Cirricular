@@ -14,7 +14,7 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields.');
@@ -34,13 +34,13 @@ const RegisterPage = () => {
     }
     setIsLoading(true);
     setError('');
-    const result = register(name.trim(), email.toLowerCase(), password);
+    const result = await register(name.trim(), email.toLowerCase(), password);
     setIsLoading(false);
     if (!result.success) {
       setError(result.error || 'Registration failed.');
       return;
     }
-    navigate('/dashboard');
+    navigate('/login');
   };
 
   return (
