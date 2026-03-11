@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { Save, User, Mail, Phone, FileText, Shield } from 'lucide-react';
+import { updateUser } from '@/api/usersApi';
+import { Save, User, Mail, Phone, FileText, Shield, Loader2 } from 'lucide-react';
 
 const AdminProfilePage = () => {
   const { currentUser, updateProfile } = useAuthStore();
@@ -10,14 +11,25 @@ const AdminProfilePage = () => {
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || name.trim().length < 2) { setError('Name must be at least 2 characters.'); return; }
-    updateProfile({ name: name.trim(), email, bio, phone });
+    if (!currentUser) return;
+
+    setSaving(true);
     setError('');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await updateUser(currentUser.id, { name: name.trim(), email, bio, phone });
+      updateProfile({ name: name.trim(), email, bio, phone });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!currentUser) return null;
@@ -78,9 +90,9 @@ const AdminProfilePage = () => {
           {error && <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg px-4 py-2.5">{error}</div>}
           {saved && <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-2.5">Profile updated successfully!</div>}
 
-          <button type="submit" className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold">
-            <Save className="h-4 w-4" />
-            Save Changes
+          <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold disabled:opacity-60">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </form>
       </div>

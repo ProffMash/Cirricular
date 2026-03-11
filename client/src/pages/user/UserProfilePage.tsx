@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { Save, User, Mail, Phone, FileText, Calendar } from 'lucide-react';
+import { updateUser } from '@/api/usersApi';
+import { Save, User, Mail, Phone, FileText, Calendar, Loader2 } from 'lucide-react';
 
 const UserProfilePage = () => {
   const { currentUser, updateProfile } = useAuthStore();
@@ -10,15 +11,26 @@ const UserProfilePage = () => {
   const [phone, setPhone] = useState(currentUser?.phone || '');
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) { setError('Name is required.'); return; }
     if (name.trim().length < 2) { setError('Name must be at least 2 characters.'); return; }
-    updateProfile({ name: name.trim(), email, bio, phone });
+    if (!currentUser) return;
+
+    setSaving(true);
     setError('');
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await updateUser(currentUser.id, { name: name.trim(), email, bio, phone });
+      updateProfile({ name: name.trim(), email, bio, phone });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!currentUser) return null;
@@ -123,10 +135,11 @@ const UserProfilePage = () => {
 
           <button
             type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold"
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold disabled:opacity-60"
           >
-            <Save className="h-4 w-4" />
-            Save Changes
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </form>
       </div>
