@@ -1,13 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEventStore } from '@/stores/eventStore';
+import {
+  fetchEvents,
+  createEvent as apiCreateEvent,
+  updateEvent as apiUpdateEvent,
+  deleteEvent as apiDeleteEvent,
+  mapEventFromApi,
+  mapEventToApi,
+} from '@/api/eventsApi';
 import StatusBadge from '@/components/shared/StatusBadge';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
-import { CalendarDays, Plus, Pencil, Trash2, Search, X } from 'lucide-react';
-import { EventCategory, Event, EventFormData } from '@/types';
+import { CalendarDays, Plus, Pencil, Trash2, Search, X, Loader2 } from 'lucide-react';
+import { EventCategory, Event } from '@/types';
 
 const CATEGORIES: EventCategory[] = ['Sports', 'Arts', 'Academic', 'Tech', 'Cultural', 'Social'];
 
@@ -25,12 +32,29 @@ const eventSchema = z.object({
 type EventFormValues = z.infer<typeof eventSchema>;
 
 const AdminEventsPage = () => {
-  const { events, createEvent, updateEvent, deleteEvent } = useEventStore();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<Event | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const loadEvents = async () => {
+    try {
+      const data = await fetchEvents();
+      setEvents(data.map(mapEventFromApi));
+    } catch {
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
   const filtered = events.filter(
     (e) =>
@@ -69,30 +93,52 @@ const AdminEventsPage = () => {
     setIsDialogOpen(true);
   };
 
-  const onSubmit = (data: EventFormValues) => {
-    const formData: EventFormData = {
-      title: data.title!,
-      description: data.description!,
-      category: data.category! as EventCategory,
-      date: data.date!,
-      time: data.time!,
-      location: data.location!,
-      capacity: data.capacity!,
+  const onSubmit = async (data: EventFormValues) => {
+    const payload = mapEventToApi({
+      title: data.title,
+      description: data.description,
+      category: data.category as EventCategory,
+      date: data.date,
+      time: data.time,
+      location: data.location,
+      capacity: data.capacity,
       imageUrl: data.imageUrl || undefined,
-    };
-    if (editTarget) {
-      updateEvent(editTarget.id, formData);
-    } else {
-      createEvent(formData);
+    });
+    setSubmitting(true);
+    try {
+      if (editTarget) {
+        await apiUpdateEvent(Number(editTarget.id), payload);
+      } else {
+        await apiCreateEvent(payload);
+      }
+      await loadEvents();
+      setIsDialogOpen(false);
+      reset();
+    } catch (err) {
+      console.error('Failed to save event', err);
+    } finally {
+      setSubmitting(false);
     }
-    setIsDialogOpen(false);
-    reset();
   };
 
-  const confirmDelete = () => {
-    if (deleteTarget) deleteEvent(deleteTarget);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await apiDeleteEvent(Number(deleteTarget));
+      await loadEvents();
+    } catch (err) {
+      console.error('Failed to delete event', err);
+    }
     setDeleteTarget(null);
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -247,7 +293,8 @@ const AdminEventsPage = () => {
                 <button type="button" onClick={() => setIsDialogOpen(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-muted transition-colors">
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">
+                <button type="submit" disabled={submitting} className="px-5 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium disabled:opacity-60 flex items-center gap-2">
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                   {isCreating ? 'Create Event' : 'Save Changes'}
                 </button>
               </div>

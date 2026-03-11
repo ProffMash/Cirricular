@@ -1,18 +1,27 @@
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useEventStore } from '@/stores/eventStore';
 import { useRegistrationStore } from '@/stores/registrationStore';
+import { fetchUsers } from '@/api/usersApi';
+import { User } from '@/types';
 import StatsCard from '@/components/shared/StatsCard';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { CalendarDays, Users, ClipboardList, TrendingUp, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const { currentUser, getAllUsers } = useAuthStore();
+  const { currentUser } = useAuthStore();
   const { events } = useEventStore();
   const { registrations, getAllActiveRegistrations } = useRegistrationStore();
+  const [users, setUsers] = useState<User[]>([]);
 
-  const users = getAllUsers();
+  useEffect(() => {
+    fetchUsers()
+      .then((data) => setUsers(data.filter((u) => u.role === 'user')))
+      .catch(() => setUsers([]));
+  }, []);
+
   const activeRegs = getAllActiveRegistrations();
   const today = new Date();
   const activeEvents = events.filter((e) => e.isActive && new Date(e.date) >= today);
@@ -78,8 +87,8 @@ const AdminDashboard = () => {
           </div>
           <div className="space-y-3">
             {recentRegs.map((reg) => {
-              const user = useAuthStore.getState().users.find((u) => u.id === reg.userId);
-              const event = useEventStore.getState().events.find((e) => e.id === reg.eventId);
+              const user = users.find((u) => String(u.id) === reg.userId);
+              const event = events.find((e) => e.id === reg.eventId);
               return (
                 <div key={reg.id} className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">

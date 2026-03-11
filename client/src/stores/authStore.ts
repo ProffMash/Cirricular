@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { User, UserRole } from '@/types';
 import { loginUser, registerUser, LoginResponse } from '@/api/authApi';
 import { setAuthToken } from '@/api/apiClient';
@@ -26,34 +27,34 @@ const mapLoginResponseToUser = (res: LoginResponse): User => ({
   joinedDate: res.joinedDate,
 });
 
-export const useAuthStore = create<AuthState>()((set) => ({
-  currentUser: null,
-  token: null,
-  isAuthenticated: false,
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      currentUser: null,
+      token: null,
+      isAuthenticated: false,
 
-  login: async (email, password) => {
-    try {
-      const res = await loginUser({ email, password });
-      const user = mapLoginResponseToUser(res);
-      setAuthToken(res.token);
-      set({ currentUser: user, token: res.token, isAuthenticated: true });
-      return { success: true, role: user.role };
-    } catch (err: any) {
-      const message = err.response?.data?.error || err.response?.data?.detail || 'Invalid email or password.';
-      return { success: false, error: message };
-    }
-  },
+      login: async (email, password) => {
+        try {
+          const res = await loginUser({ email, password });
+          const user = mapLoginResponseToUser(res);
+          setAuthToken(res.token);
+          set({ currentUser: user, token: res.token, isAuthenticated: true });
+          return { success: true, role: user.role };
+        } catch (err: any) {
+          const message = err.response?.data?.error || err.response?.data?.detail || 'Invalid email or password.';
+          return { success: false, error: message };
+        }
+      },
 
-  logout: () => {
-    setAuthToken(null);
-    set({ currentUser: null, token: null, isAuthenticated: false });
-  },
+      logout: () => {
+        setAuthToken(null);
+        set({ currentUser: null, token: null, isAuthenticated: false });
+      },
 
   register: async (name, email, password) => {
     try {
-      const res = await registerUser({ email, password, name });
-      // Registration returns token but not full user; need to login to get user data
-      // For now just indicate success — user will be redirected to login
+      await registerUser({ email, password, name });
       return { success: true };
     } catch (err: any) {
       const message =
@@ -77,4 +78,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
     setAuthToken(token);
     set({ currentUser: user, token, isAuthenticated: true });
   },
-}));
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({ currentUser: state.currentUser, token: state.token, isAuthenticated: state.isAuthenticated }),
+      onRehydrateStorage: () => (state) => {
+        // Restore the Authorization header when state is rehydrated from storage
+        if (state?.token) {
+          setAuthToken(state.token);
+        }
+      },
+    }
+  )
+);
