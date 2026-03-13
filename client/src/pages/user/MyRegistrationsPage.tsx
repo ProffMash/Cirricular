@@ -1,32 +1,68 @@
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { useEventStore } from '@/stores/eventStore';
-import { useRegistrationStore } from '@/stores/registrationStore';
+import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
+import { fetchRegistrations, cancelRegistration as apiCancelRegistration } from '@/api/registrationApi';
 import StatusBadge from '@/components/shared/StatusBadge';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
-import { BookMarked, Calendar, MapPin, X } from 'lucide-react';
-import { useState } from 'react';
+import { BookMarked, Calendar, MapPin, X, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Event, Registration } from '@/types';
 
 const MyRegistrationsPage = () => {
   const { currentUser } = useAuthStore();
-  const { events, decrementRegistered } = useEventStore();
-  const { getUserRegistrations, cancelRegistration } = useRegistrationStore();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
 
-  const userId = currentUser?.id || '';
-  const regs = getUserRegistrations(userId);
-  const filtered = filter === 'all' ? regs : regs.filter((r) => r.status === filter);
+  const userId = currentUser?.id ? String(currentUser.id) : '';
+
+  const loadData = async () => {
+    try {
+      const [eventsData, regsData] = await Promise.all([fetchEvents(), fetchRegistrations()]);
+      setEvents(eventsData.map(mapEventFromApi));
+      setRegistrations(regsData);
+    } catch {
+      setEvents([]);
+      setRegistrations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const userRegs = registrations.filter((r) => r.userId === userId);
+  const filtered = filter === 'all' ? userRegs : userRegs.filter((r) => r.status === filter);
   const sorted = [...filtered].sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime());
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     if (!cancelTarget) return;
-    const reg = regs.find((r) => r.id === cancelTarget);
-    cancelRegistration(cancelTarget);
-    if (reg) decrementRegistered(reg.eventId);
-    setCancelTarget(null);
+    try {
+      await apiCancelRegistration(Number(cancelTarget));
+      const reg = registrations.find((r) => r.id === cancelTarget);
+      setRegistrations((prev) => prev.map((r) => r.id === cancelTarget ? { ...r, status: 'cancelled' } : r));
+      if (reg) {
+        setEvents((prev) => prev.map((e) => e.id === reg.eventId ? { ...e, registeredCount: Math.max(0, e.registeredCount - 1) } : e));
+      }
+    } catch (err) {
+      console.error('Failed to cancel registration', err);
+    } finally {
+      setCancelTarget(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto">
@@ -45,7 +81,7 @@ const MyRegistrationsPage = () => {
               filter === f ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {f} ({f === 'all' ? regs.length : regs.filter((r) => r.status === f).length})
+            {f} ({f === 'all' ? userRegs.length : userRegs.filter((r) => r.status === f).length})
           </button>
         ))}
       </div>

@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
 from .models import Event, Registration
@@ -56,6 +57,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def list(self, request, *args, **kwargs):
         if not request.query_params:

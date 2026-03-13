@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useRegistrationStore } from '@/stores/registrationStore';
-import { useEventStore } from '@/stores/eventStore';
 import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
 import { ClipboardList, Download, Search, X, Loader2 } from 'lucide-react';
 import { fetchUsers } from '@/api/usersApi';
-import { User } from '@/types';
+import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
+import { fetchRegistrations } from '@/api/registrationApi';
+import { User, Event, Registration } from '@/types';
 
 const AdminRegistrationsPage = () => {
-  const { registrations } = useRegistrationStore();
-  const { events } = useEventStore();
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
   const [eventFilter, setEventFilter] = useState('all');
@@ -17,10 +17,26 @@ const AdminRegistrationsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchUsers()
-      .then((data) => setUsers(data))
-      .catch(() => setUsers([]))
-      .finally(() => setLoading(false));
+    const loadData = async () => {
+      try {
+        const [usersData, eventsData, registrationsData] = await Promise.all([
+          fetchUsers(),
+          fetchEvents(),
+          fetchRegistrations(),
+        ]);
+        setUsers(usersData);
+        setEvents(eventsData.map(mapEventFromApi));
+        setRegistrations(registrationsData);
+      } catch (error) {
+        console.error('Failed to load data', error);
+        setUsers([]);
+        setEvents([]);
+        setRegistrations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   const filtered = registrations.filter((reg) => {

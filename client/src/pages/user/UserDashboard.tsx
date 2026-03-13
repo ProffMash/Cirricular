@@ -1,22 +1,41 @@
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { useEventStore } from '@/stores/eventStore';
-import { useRegistrationStore } from '@/stores/registrationStore';
+import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
+import { fetchRegistrations, createRegistration, cancelRegistration as apiCancelRegistration } from '@/api/registrationApi';
 import StatsCard from '@/components/shared/StatsCard';
 import EventCard from '@/components/shared/EventCard';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import { Calendar, BookMarked, TrendingUp, Star } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, BookMarked, TrendingUp, Star, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Event, Registration } from '@/types';
 
 const UserDashboard = () => {
   const { currentUser } = useAuthStore();
-  const { events, incrementRegistered, decrementRegistered } = useEventStore();
-  const { getUserRegistrations, registerForEvent, cancelRegistration, isUserRegistered, getUserRegistrationForEvent } = useRegistrationStore();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
   const [confirmEvent, setConfirmEvent] = useState<string | null>(null);
   const [cancelConfirmReg, setCancelConfirmReg] = useState<string | null>(null);
+  const [cancelEventId, setCancelEventId] = useState<string | null>(null);
 
-  const userId = currentUser?.id || '';
-  const userRegs = getUserRegistrations(userId).filter((r) => r.status === 'confirmed');
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [eventsData, regsData] = await Promise.all([fetchEvents(), fetchRegistrations()]);
+        setEvents(eventsData.map(mapEventFromApi));
+        setRegistrations(regsData);
+      } catch {
+        setEvents([]);
+        setRegistrations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const userId = currentUser?.id ? String(currentUser.id) : '';
+  const userRegs = registrations.filter((r) => r.userId === userId && r.status === 'confirmed');
   const today = new Date();
   const upcomingRegs = userRegs.filter((r) => {
     const ev = events.find((e) => e.id === r.eventId);
@@ -28,29 +47,59 @@ const UserDashboard = () => {
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, 3);
 
+  const isUserRegistered = (eventId: string) =>
+    registrations.some((r) => r.userId === userId && r.eventId === eventId && r.status === 'confirmed');
+
+  const getUserRegistrationForEvent = (eventId: string) =>
+    registrations.find((r) => r.userId === userId && r.eventId === eventId && r.status === 'confirmed');
+
+  const getRegisteredCount = (eventId: string) =>
+    registrations.filter((r) => r.eventId === eventId && r.status === 'confirmed').length;
+
   const handleRegister = (eventId: string) => setConfirmEvent(eventId);
   const handleCancel = (eventId: string) => {
-    const reg = getUserRegistrationForEvent(userId, eventId);
-    if (reg) setCancelConfirmReg(reg.id);
+    const reg = getUserRegistrationForEvent(eventId);
+    if (reg) {
+      setCancelConfirmReg(reg.id);
+      setCancelEventId(eventId);
+    }
   };
 
-  const confirmRegister = () => {
-    if (!confirmEvent) return;
-    registerForEvent(userId, confirmEvent);
-    incrementRegistered(confirmEvent);
-    setConfirmEvent(null);
+  const confirmRegister = async () => {
+    if (!confirmEvent || !currentUser) return;
+    try {
+      const newReg = await createRegistration({ event: Number(confirmEvent) });
+      setRegistrations((prev) => [...prev, newReg]);
+    } catch (err) {
+      console.error('Failed to register', err);
+    } finally {
+      setConfirmEvent(null);
+    }
   };
 
-  const confirmCancel = () => {
-    if (!cancelConfirmReg) return;
-    const reg = useRegistrationStore.getState().registrations.find((r) => r.id === cancelConfirmReg);
-    cancelRegistration(cancelConfirmReg);
-    if (reg) decrementRegistered(reg.eventId);
-    setCancelConfirmReg(null);
+  const confirmCancel = async () => {
+    if (!cancelConfirmReg || !cancelEventId) return;
+    try {
+      await apiCancelRegistration(Number(cancelConfirmReg));
+      setRegistrations((prev) => prev.map((r) => r.id === cancelConfirmReg ? { ...r, status: 'cancelled' } : r));
+    } catch (err) {
+      console.error('Failed to cancel registration', err);
+    } finally {
+      setCancelConfirmReg(null);
+      setCancelEventId(null);
+    }
   };
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -106,12 +155,13 @@ const UserDashboard = () => {
       <p className="text-sm text-muted-foreground mb-4">Don't miss these upcoming activities</p>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {featuredEvents.map((event) => {
-          const registered = isUserRegistered(userId, event.id);
-          const full = event.registeredCount >= event.capacity && !registered;
+          const registered = isUserRegistered(event.id);
+          const registeredCount = getRegisteredCount(event.id);
+          const full = registeredCount >= event.capacity && !registered;
           return (
             <EventCard
               key={event.id}
-              event={event}
+              event={{ ...event, registeredCount }}
               isRegistered={registered}
               isFull={full}
               onRegister={() => handleRegister(event.id)}

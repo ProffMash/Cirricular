@@ -1,49 +1,113 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { useEventStore } from '@/stores/eventStore';
-import { useRegistrationStore } from '@/stores/registrationStore';
+import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
+import { fetchRegistrations, createRegistration, cancelRegistration as apiCancelRegistration } from '@/api/registrationApi';
 import EventCard from '@/components/shared/EventCard';
 import EmptyState from '@/components/shared/EmptyState';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import { CalendarDays, Search, X } from 'lucide-react';
-import { EventCategory } from '@/types';
-import { Link } from 'react-router-dom';
+import { CalendarDays, Search, X, Loader2 } from 'lucide-react';
+import { EventCategory, Event, Registration } from '@/types';
 
 const CATEGORIES: (EventCategory | 'All')[] = ['All', 'Sports', 'Arts', 'Academic', 'Tech', 'Cultural', 'Social'];
 
 const BrowseEventsPage = () => {
   const { currentUser } = useAuthStore();
-  const { searchQuery, selectedCategory, setSearchQuery, setSelectedCategory, getFilteredEvents } = useEventStore();
-  const { isUserRegistered, registerForEvent, cancelRegistration, getUserRegistrationForEvent } = useRegistrationStore();
-  const { incrementRegistered, decrementRegistered } = useEventStore();
+  
+  const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | 'All'>('All');
   const [confirmEventId, setConfirmEventId] = useState<string | null>(null);
   const [cancelRegId, setCancelRegId] = useState<string | null>(null);
   const [cancelEventId, setCancelEventId] = useState<string | null>(null);
 
-  const userId = currentUser?.id || '';
-  const filteredEvents = getFilteredEvents();
-  const allEvents = useEventStore.getState().events;
+  const loadData = async () => {
+    try {
+      const [eventsData, regsData] = await Promise.all([fetchEvents(), fetchRegistrations()]);
+      setEvents(eventsData.map(mapEventFromApi));
+      setRegistrations(regsData);
+    } catch {
+      setEvents([]);
+      setRegistrations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const userId = currentUser?.id ? String(currentUser.id) : '';
+
+  const isUserRegistered = (eventId: string) => {
+    return registrations.some((r) => r.userId === userId && r.eventId === eventId && r.status === 'confirmed');
+  };
+
+  const getUserRegistrationForEvent = (eventId: string) => {
+    return registrations.find((r) => r.userId === userId && r.eventId === eventId && r.status === 'confirmed');
+  };
+
+  const getRegisteredCount = (eventId: string) => {
+    return registrations.filter((r) => r.eventId === eventId && r.status === 'confirmed').length;
+  };
+
+  const filteredEvents = useMemo(() => {
+    const today = new Date();
+    return events.filter((e) => {
+      if (!e.isActive || new Date(e.date) < today) return false;
+      if (selectedCategory !== 'All' && e.category !== selectedCategory) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return (
+          e.title.toLowerCase().includes(q) ||
+          e.description.toLowerCase().includes(q) ||
+          e.location.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [events, searchQuery, selectedCategory]);
 
   const handleRegister = (eventId: string) => setConfirmEventId(eventId);
   const handleCancel = (eventId: string) => {
-    const reg = getUserRegistrationForEvent(userId, eventId);
+    const reg = getUserRegistrationForEvent(eventId);
     if (reg) { setCancelRegId(reg.id); setCancelEventId(eventId); }
   };
 
-  const confirmRegister = () => {
-    if (!confirmEventId) return;
-    registerForEvent(userId, confirmEventId);
-    incrementRegistered(confirmEventId);
-    setConfirmEventId(null);
+  const confirmRegister = async () => {
+    if (!confirmEventId || !currentUser) return;
+    try {
+      const newReg = await createRegistration({ event: Number(confirmEventId) });
+      setRegistrations((prev) => [...prev, newReg]);
+    } catch (err) {
+      console.error('Failed to register', err);
+    } finally {
+      setConfirmEventId(null);
+    }
   };
 
-  const confirmCancel = () => {
+  const confirmCancel = async () => {
     if (!cancelRegId || !cancelEventId) return;
-    cancelRegistration(cancelRegId);
-    decrementRegistered(cancelEventId);
-    setCancelRegId(null);
-    setCancelEventId(null);
+    try {
+      await apiCancelRegistration(Number(cancelRegId));
+      setRegistrations((prev) => prev.map((r) => r.id === cancelRegId ? { ...r, status: 'cancelled' } : r));
+    } catch (err) {
+      console.error('Failed to cancel registration', err);
+    } finally {
+      setCancelRegId(null);
+      setCancelEventId(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 lg:p-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
@@ -106,12 +170,13 @@ const BrowseEventsPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredEvents.map((event) => {
-            const registered = isUserRegistered(userId, event.id);
-            const full = event.registeredCount >= event.capacity && !registered;
+            const registered = isUserRegistered(event.id);
+            const registeredCount = getRegisteredCount(event.id);
+            const full = registeredCount >= event.capacity && !registered;
             return (
               <EventCard
                 key={event.id}
-                event={event}
+                event={{ ...event, registeredCount }}
                 isRegistered={registered}
                 isFull={full}
                 onRegister={() => handleRegister(event.id)}
@@ -127,7 +192,7 @@ const BrowseEventsPage = () => {
         open={!!confirmEventId}
         onOpenChange={(open) => !open && setConfirmEventId(null)}
         title="Confirm Registration"
-        description={`Register for "${allEvents.find((e) => e.id === confirmEventId)?.title}"?`}
+        description={`Register for "${events.find((e) => e.id === confirmEventId)?.title}"?`}
         confirmLabel="Register"
         onConfirm={confirmRegister}
       />
