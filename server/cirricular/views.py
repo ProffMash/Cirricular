@@ -2,9 +2,12 @@ from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
+from django.conf import settings
+import hashlib
+import time
 from .models import Event, Registration
 from .serializers import (
     UserSerializer,
@@ -169,3 +172,34 @@ class LoginView(APIView):
                 return Response(data, status=status.HTTP_200_OK)
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AvatarUploadSignatureView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        cloud_name = settings.CLOUDINARY_CLOUD_NAME
+        api_key = settings.CLOUDINARY_API_KEY
+        api_secret = settings.CLOUDINARY_API_SECRET
+
+        if not cloud_name or not api_key or not api_secret:
+            return Response(
+                {'error': 'Cloudinary settings are not configured on the server.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        timestamp = int(time.time())
+        folder = 'cirricular/avatars'
+        sign_payload = f'folder={folder}&timestamp={timestamp}{api_secret}'
+        signature = hashlib.sha1(sign_payload.encode('utf-8')).hexdigest()
+
+        return Response(
+            {
+                'cloudName': cloud_name,
+                'apiKey': api_key,
+                'timestamp': timestamp,
+                'folder': folder,
+                'signature': signature,
+            },
+            status=status.HTTP_200_OK,
+        )

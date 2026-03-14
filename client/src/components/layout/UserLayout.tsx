@@ -85,11 +85,34 @@ const UserSidebar = ({ collapsed, onToggle }: UserSidebarProps) => {
 
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border">
+        {collapsed && currentUser && (
+          <div className="flex items-center justify-center mb-2">
+            {currentUser.avatar ? (
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="h-8 w-8 rounded-full object-cover border border-sidebar-border"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-sidebar-primary flex items-center justify-center text-white text-xs font-bold">
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        )}
         {!collapsed && currentUser && (
           <div className="flex items-center gap-2 px-2 py-2 mb-2">
-            <div className="h-8 w-8 rounded-full bg-sidebar-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-              {currentUser.name.charAt(0).toUpperCase()}
-            </div>
+            {currentUser.avatar ? (
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.name}
+                className="h-8 w-8 rounded-full object-cover border border-sidebar-border flex-shrink-0"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-sidebar-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="text-sidebar-foreground text-xs font-medium truncate">{currentUser.name}</p>
               <p className="text-sidebar-foreground/50 text-xs truncate">{currentUser.email}</p>

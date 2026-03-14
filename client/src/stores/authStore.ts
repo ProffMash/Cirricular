@@ -11,7 +11,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; role?: UserRole; error?: string }>;
   logout: () => void;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'bio' | 'phone'>>) => void;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'bio' | 'phone' | 'avatar'>>) => void;
   setUser: (user: User, token: string) => void;
 }
 

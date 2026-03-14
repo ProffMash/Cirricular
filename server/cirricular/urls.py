@@ -6,6 +6,7 @@ from .views import (
     RegistrationViewSet,
     RegisterView,
     LoginView,
+    AvatarUploadSignatureView,
 )
 
 router = DefaultRouter()
@@ -17,4 +18,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
+    path('uploads/avatar-signature/', AvatarUploadSignatureView.as_view(), name='avatar-upload-signature'),
 ]

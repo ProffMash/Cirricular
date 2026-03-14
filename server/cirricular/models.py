@@ -31,7 +31,7 @@ class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True)
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user') 
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True, max_length=255)
+    avatar = models.URLField(blank=True, null=True, max_length=500)
     bio = models.TextField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     joinedDate = models.DateTimeField(auto_now_add=True)
