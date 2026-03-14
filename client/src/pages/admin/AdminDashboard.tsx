@@ -9,6 +9,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import { CalendarDays, Users, ClipboardList, TrendingUp, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Link } from 'react-router-dom';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const AdminDashboard = () => {
   const { currentUser } = useAuthStore();
@@ -102,7 +103,7 @@ const AdminDashboard = () => {
                     <StatusBadge label={reg.status} />
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-2.5 w-2.5" />
-                      {new Date(reg.registeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {formatDateDDMMYY(reg.registeredAt)}
                     </span>
                   </div>
                 </div>
@@ -136,7 +137,7 @@ const AdminDashboard = () => {
                   <tr key={event.id}>
                     <td className="py-3 pr-4 font-medium text-foreground truncate max-w-[180px]">{event.title}</td>
                     <td className="py-3 pr-4 hidden sm:table-cell"><StatusBadge label={event.category} /></td>
-                    <td className="py-3 pr-4 text-muted-foreground hidden md:table-cell">{new Date(event.date).toLocaleDateString()}</td>
+                    <td className="py-3 pr-4 text-muted-foreground hidden md:table-cell">{formatDateDDMMYY(event.date)}</td>
                     <td className="py-3 pr-4 text-muted-foreground">{event.capacity}</td>
                     <td className="py-3">
                       <div className="flex items-center gap-2">

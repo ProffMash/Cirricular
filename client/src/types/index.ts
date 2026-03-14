@@ -9,6 +9,8 @@ export interface User {
   username: string;
   name: string;
   role: UserRole;
+  isActive?: boolean;
+  latestRegistrationDate?: string | null;
   avatar: string | null;
   bio: string | null;
   phone: string | null;

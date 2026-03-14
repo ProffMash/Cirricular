@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import { Calendar, Clock, MapPin, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const EventDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,7 +87,7 @@ const EventDetailPage = () => {
           <h1 className="text-2xl font-bold text-foreground mb-4">{event.title}</h1>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { icon: Calendar, label: new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
+              { icon: Calendar, label: formatDateDDMMYY(event.date) },
               { icon: Clock, label: event.time },
               { icon: MapPin, label: event.location },
               { icon: Users, label: `${event.registeredCount} / ${event.capacity} registered` },
@@ -153,7 +154,7 @@ const EventDetailPage = () => {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Confirm Registration"
-        description={`Register for "${event.title}" on ${new Date(event.date).toLocaleDateString()}?`}
+        description={`Register for "${event.title}" on ${formatDateDDMMYY(event.date)}?`}
         confirmLabel="Register"
         onConfirm={handleRegister}
       />

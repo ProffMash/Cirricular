@@ -3,6 +3,7 @@ import { Event } from '@/types';
 import { Calendar, MapPin, Users, Clock } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { cn } from '@/lib/utils';
+import { formatDateDDMMYY } from '@/utils/date';
 
 interface EventCardProps {
   event: Event;
@@ -58,7 +59,7 @@ const EventCard = ({
           <div className="space-y-1.5 text-sm text-muted-foreground mb-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
-              <span>{new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span>{formatDateDDMMYY(event.date)}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-3.5 w-3.5 flex-shrink-0" />

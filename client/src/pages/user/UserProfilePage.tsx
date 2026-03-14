@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { updateUser } from '@/api/usersApi';
 import { Save, User, Mail, Phone, FileText, Calendar, Loader2 } from 'lucide-react';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const UserProfilePage = () => {
   const { currentUser, updateProfile } = useAuthStore();
@@ -115,7 +116,7 @@ const UserProfilePage = () => {
             </label>
             <input
               type="text"
-              value={new Date(currentUser.joinedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              value={formatDateDDMMYY(currentUser.joinedDate)}
               disabled
               className="w-full px-3 py-2.5 rounded-lg border border-input bg-muted text-muted-foreground text-sm cursor-not-allowed"
             />

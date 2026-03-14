@@ -21,6 +21,7 @@ const mapLoginResponseToUser = (res: LoginResponse): User => ({
   username: res.username,
   name: res.name,
   role: res.role,
+  isActive: res.isActive,
   avatar: res.avatar,
   bio: res.bio,
   phone: res.phone,

@@ -21,6 +21,7 @@ export interface LoginResponse {
   username: string;
   name: string;
   role: 'admin' | 'user';
+  isActive?: boolean;
   avatar: string | null;
   bio: string | null;
   phone: string | null;

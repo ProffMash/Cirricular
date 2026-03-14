@@ -8,6 +8,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import { BookMarked, Calendar, MapPin, X, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Event, Registration } from '@/types';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const MyRegistrationsPage = () => {
   const { currentUser } = useAuthStore();
@@ -122,7 +123,7 @@ const MyRegistrationsPage = () => {
                   <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {event.time}
+                      {formatDateDDMMYY(event.date)} · {event.time}
                     </span>
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3 w-3" />
@@ -130,7 +131,7 @@ const MyRegistrationsPage = () => {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Registered on {new Date(reg.registeredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    Registered on {formatDateDDMMYY(reg.registeredAt)}
                   </p>
                 </div>
                 {reg.status === 'confirmed' && !isPast && (

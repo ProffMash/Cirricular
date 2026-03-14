@@ -5,9 +5,16 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+	isActive = serializers.BooleanField(source='is_active', required=False)
+	latestRegistrationDate = serializers.SerializerMethodField()
+
+	def get_latestRegistrationDate(self, obj):
+		latest = obj.registration_set.order_by('-registered_at').first()
+		return latest.registered_at if latest else None
+
 	class Meta:
 		model = User
-		fields = ['id', 'email', 'username', 'name', 'role', 'avatar', 'bio', 'phone', 'joinedDate']
+		fields = ['id', 'email', 'username', 'name', 'role', 'avatar', 'bio', 'phone', 'joinedDate', 'isActive', 'latestRegistrationDate']
 		read_only_fields = ['joinedDate']
   
 class EventSerializer(serializers.ModelSerializer):

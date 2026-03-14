@@ -6,6 +6,7 @@ import { fetchUsers } from '@/api/usersApi';
 import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
 import { fetchRegistrations } from '@/api/registrationApi';
 import { User, Event, Registration } from '@/types';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const AdminRegistrationsPage = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -180,10 +181,10 @@ const AdminRegistrationsPage = () => {
                         {event && <StatusBadge label={event.category} />}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {event ? new Date(event.date).toLocaleDateString() : '-'}
+                        {event ? formatDateDDMMYY(event.date) : '-'}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">
-                        {new Date(reg.registeredAt).toLocaleDateString()}
+                        {formatDateDDMMYY(reg.registeredAt)}
                       </td>
                       <td className="px-4 py-3"><StatusBadge label={reg.status} /></td>
                     </tr>

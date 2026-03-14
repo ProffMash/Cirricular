@@ -15,6 +15,7 @@ import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
 import { CalendarDays, Plus, Pencil, Trash2, Search, X, Loader2 } from 'lucide-react';
 import { EventCategory, Event } from '@/types';
+import { formatDateDDMMYY } from '@/utils/date';
 
 const CATEGORIES: EventCategory[] = ['Sports', 'Arts', 'Academic', 'Tech', 'Cultural', 'Social'];
 
@@ -198,7 +199,7 @@ const AdminEventsPage = () => {
                         <p className="truncate">{event.title}</p>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell"><StatusBadge label={event.category} /></td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{new Date(event.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{formatDateDDMMYY(event.date)}</td>
                       <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell truncate max-w-[160px]">{event.location}</td>
                       <td className="px-4 py-3 text-muted-foreground">{event.capacity}</td>
                       <td className="px-4 py-3">
