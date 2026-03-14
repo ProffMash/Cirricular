@@ -27,7 +27,6 @@ export interface Event {
   location: string;
   capacity: number;
   registeredCount: number;
-  imageUrl?: string;
   createdBy: number; // admin user id
   createdAt: string;
   isActive: boolean;
@@ -49,5 +48,4 @@ export interface EventFormData {
   time: string;
   location: string;
   capacity: number;
-  imageUrl?: string;
 }

@@ -39,15 +39,6 @@ const EventCard = ({
   return (
     <CardWrapper>
       <div className="bg-card border border-border rounded-xl shadow-card hover:shadow-card-hover transition-all duration-200 flex flex-col h-full overflow-hidden">
-        {event.imageUrl && (
-          <div className="h-44 overflow-hidden flex-shrink-0">
-            <img
-              src={event.imageUrl}
-              alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        )}
         <div className="p-5 flex flex-col flex-1">
           <div className="flex items-start justify-between gap-2 mb-2">
             <StatusBadge label={event.category} />

@@ -72,12 +72,6 @@ const EventDetailPage = () => {
         </div>
       )}
 
-      {event.imageUrl && (
-        <div className="h-64 lg:h-80 rounded-2xl overflow-hidden mb-6">
-          <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2 mb-3">

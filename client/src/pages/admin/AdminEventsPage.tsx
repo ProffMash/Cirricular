@@ -27,7 +27,6 @@ const eventSchema = z.object({
   time: z.string().min(1, 'Time is required'),
   location: z.string().min(3, 'Location is required').max(200),
   capacity: z.coerce.number().min(1, 'Capacity must be at least 1').max(10000),
-  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
 type EventFormValues = z.infer<typeof eventSchema>;
@@ -74,7 +73,7 @@ const AdminEventsPage = () => {
   const openCreate = () => {
     setEditTarget(null);
     setIsCreating(true);
-    reset({ title: '', description: '', category: 'Academic' as EventCategory, date: '', time: '', location: '', capacity: 50, imageUrl: '' });
+    reset({ title: '', description: '', category: 'Academic' as EventCategory, date: '', time: '', location: '', capacity: 50 });
     setIsDialogOpen(true);
   };
 
@@ -89,7 +88,6 @@ const AdminEventsPage = () => {
       time: event.time,
       location: event.location,
       capacity: event.capacity,
-      imageUrl: event.imageUrl || '',
     });
     setIsDialogOpen(true);
   };
@@ -103,7 +101,6 @@ const AdminEventsPage = () => {
       time: data.time,
       location: data.location,
       capacity: data.capacity,
-      imageUrl: data.imageUrl || undefined,
     });
     setSubmitting(true);
     try {
@@ -283,11 +280,6 @@ const AdminEventsPage = () => {
                   <label className="block text-sm font-medium text-foreground mb-1.5">Description *</label>
                   <textarea {...register('description')} rows={4} className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm resize-none" />
                   {errors.description && <p className="text-xs text-destructive mt-1">{errors.description.message}</p>}
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Image URL (optional)</label>
-                  <input type="url" {...register('imageUrl')} placeholder="https://..." className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm" />
-                  {errors.imageUrl && <p className="text-xs text-destructive mt-1">{errors.imageUrl.message}</p>}
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">

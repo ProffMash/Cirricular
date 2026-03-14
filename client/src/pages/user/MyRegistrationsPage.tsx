@@ -106,11 +106,6 @@ const MyRegistrationsPage = () => {
             const isPast = new Date(event.date) < new Date();
             return (
               <div key={reg.id} className="bg-card border border-border rounded-xl p-4 shadow-card flex items-center gap-4">
-                {event.imageUrl && (
-                  <div className="hidden sm:block h-16 w-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <StatusBadge label={event.category} />

@@ -13,7 +13,6 @@ export interface EventFromApi {
   location: string;
   capacity: number;
   registered_count: number;
-  image_url: string | null;
   created_by: number;
   created_at: string;
   is_active: boolean;
@@ -27,7 +26,6 @@ export interface CreateEventPayload {
   time: string;
   location: string;
   capacity: number;
-  image_url?: string;
   is_active?: boolean;
 }
 
@@ -65,7 +63,6 @@ export function mapEventFromApi(e: EventFromApi): Event {
     location: e.location,
     capacity: e.capacity,
     registeredCount: e.registered_count,
-    imageUrl: e.image_url || undefined,
     createdBy: e.created_by,
     createdAt: e.created_at,
     isActive: e.is_active,
@@ -73,7 +70,7 @@ export function mapEventFromApi(e: EventFromApi): Event {
 }
 
 // Convert frontend form data to API payload
-export function mapEventToApi(data: { title: string; description: string; category: FrontendCategory; date: string; time: string; location: string; capacity: number; imageUrl?: string; isActive?: boolean }): CreateEventPayload {
+export function mapEventToApi(data: { title: string; description: string; category: FrontendCategory; date: string; time: string; location: string; capacity: number; isActive?: boolean }): CreateEventPayload {
   return {
     title: data.title,
     description: data.description,
@@ -82,7 +79,6 @@ export function mapEventToApi(data: { title: string; description: string; catego
     time: data.time,
     location: data.location,
     capacity: data.capacity,
-    image_url: data.imageUrl || undefined,
     is_active: data.isActive,
   };
 }

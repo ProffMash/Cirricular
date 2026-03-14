@@ -76,7 +76,6 @@ class Event(models.Model):
     location = models.CharField(max_length=255)
     capacity = models.PositiveIntegerField()
     registered_count = models.PositiveIntegerField(default=0)
-    image_url = models.URLField(blank=True, null=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
