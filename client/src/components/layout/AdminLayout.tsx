@@ -10,10 +10,12 @@ import {
   ChevronLeft,
   Menu,
   Shield,
+  X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const navItems = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
@@ -26,9 +28,12 @@ const navItems = [
 interface AdminSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  isMobile: boolean;
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
 }
 
-const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
+const AdminSidebar = ({ collapsed, onToggle, isMobile, mobileOpen, onCloseMobile }: AdminSidebarProps) => {
   const location = useLocation();
   const { currentUser, logout } = useAuthStore();
 
@@ -41,7 +46,14 @@ const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
     <aside
       className={cn(
         'h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 flex-shrink-0',
-        collapsed ? 'w-16' : 'w-64'
+        isMobile
+          ? [
+              'fixed inset-y-0 left-0 z-50 w-64 transform',
+              mobileOpen ? 'translate-x-0' : '-translate-x-full',
+            ]
+          : collapsed
+          ? 'w-16'
+          : 'w-64'
       )}
     >
       <div className={cn('flex items-center gap-3 p-4 border-b border-sidebar-border', collapsed && 'justify-center')}>
@@ -56,12 +68,18 @@ const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
             </span>
           </span>
         )}
-        <button
-          onClick={onToggle}
-          className={cn('ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground', collapsed && 'ml-0')}
-        >
-          {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </button>
+        {isMobile ? (
+          <button onClick={onCloseMobile} className="ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={onToggle}
+            className={cn('ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground', collapsed && 'ml-0')}
+          >
+            {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
@@ -71,6 +89,7 @@ const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
             <Link
               key={item.path}
               to={item.path}
+              onClick={isMobile ? onCloseMobile : undefined}
               title={collapsed ? item.label : undefined}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
@@ -138,12 +157,41 @@ const AdminSidebar = ({ collapsed, onToggle }: AdminSidebarProps) => {
 };
 
 export const AdminLayout = ({ children }: { children: React.ReactNode }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const collapsed = isMobile ? false : desktopCollapsed;
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} />
+      {isMobile && mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      <AdminSidebar
+        collapsed={collapsed}
+        onToggle={() => setDesktopCollapsed((p) => !p)}
+        isMobile={isMobile}
+        mobileOpen={mobileOpen}
+        onCloseMobile={() => setMobileOpen(false)}
+      />
+
       <main className="flex-1 overflow-y-auto">
+        {isMobile && (
+          <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 p-4 backdrop-blur md:hidden">
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg border border-border bg-background p-2 text-muted-foreground transition-colors hover:text-foreground"
+              title="Open menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-semibold text-foreground">Menu</span>
+          </div>
+        )}
         {children}
       </main>
     </div>

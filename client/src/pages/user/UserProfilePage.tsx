@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { fetchUser } from '@/api/usersApi';
 import { updateUser, uploadAvatarToCloudinary } from '@/api/usersApi';
-import { User, Mail, Phone, FileText, Calendar, Loader2, Pencil, X } from 'lucide-react';
+import { User, Mail, Phone, FileText, Calendar, Loader2, Pencil, X, Hash, Building2 } from 'lucide-react';
 import { formatDateDDMMYY } from '@/utils/date';
+import type { School } from '@/types';
+
+const schoolOptions: School[] = ['SPAS', 'Education', 'Health Science', 'Bussiness', 'Engineering'];
 
 const UserProfilePage = () => {
-  const { currentUser, updateProfile } = useAuthStore();
+  const { currentUser, token, updateProfile, setUser } = useAuthStore();
   const [profileData, setProfileData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
     bio: currentUser?.bio || '',
     phone: currentUser?.phone || '',
+    regNo: currentUser?.regNo || '',
+    school: currentUser?.school || ('' as School | ''),
   });
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -26,8 +32,25 @@ const UserProfilePage = () => {
       email: currentUser.email || '',
       bio: currentUser.bio || '',
       phone: currentUser.phone || '',
+      regNo: currentUser.regNo || '',
+      school: currentUser.school || ('' as School | ''),
     });
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser || !token) return;
+
+    const syncUserProfile = async () => {
+      try {
+        const freshUser = await fetchUser(currentUser.id);
+        setUser(freshUser, token);
+      } catch {
+        // Keep existing local user state when profile refresh fails.
+      }
+    };
+
+    syncUserProfile();
+  }, [currentUser?.id, token, setUser]);
 
   const openEditModal = () => {
     if (!currentUser) return;
@@ -36,6 +59,8 @@ const UserProfilePage = () => {
       email: currentUser.email || '',
       bio: currentUser.bio || '',
       phone: currentUser.phone || '',
+      regNo: currentUser.regNo || '',
+      school: currentUser.school || ('' as School | ''),
     });
     setAvatarFile(null);
     setAvatarPreview(currentUser.avatar || null);
@@ -68,11 +93,20 @@ const UserProfilePage = () => {
 
     let avatarUrl = currentUser.avatar;
 
+    if (!profileData.school) {
+      setError('School is required.');
+      return;
+    }
+
+    const selectedSchool: School = profileData.school;
+
     const updates = {
       name: profileData.name.trim(),
       email: profileData.email.trim(),
       phone: profileData.phone.trim(),
       bio: profileData.bio.trim(),
+      regNo: profileData.regNo.trim(),
+      school: selectedSchool,
       avatar: avatarUrl,
     };
 
@@ -88,7 +122,10 @@ const UserProfilePage = () => {
       setError('Email is required.');
       return;
     }
-
+    if (!updates.regNo || updates.regNo.length < 3) {
+      setError('Reg No must be at least 3 characters.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -104,7 +141,13 @@ const UserProfilePage = () => {
       setTimeout(() => setSaved(false), 3000);
       closeEditModal();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to update profile.');
+      const message =
+        err.response?.data?.regNo?.[0] ||
+        err.response?.data?.school?.[0] ||
+        err.response?.data?.email?.[0] ||
+        err.response?.data?.detail ||
+        'Failed to update profile.';
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -167,6 +210,20 @@ const UserProfilePage = () => {
               </div>
               <p className={`text-sm ${currentUser.phone ? 'text-foreground' : 'text-muted-foreground'}`}>{currentUser.phone || 'Not provided'}</p>
             </div>
+          </div>
+          <div className="w-full rounded-xl border border-border bg-background p-4 text-left">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <Hash className="h-3.5 w-3.5" />
+              Reg No
+            </div>
+            <p className={`text-sm ${currentUser.regNo ? 'text-foreground' : 'text-muted-foreground'}`}>{currentUser.regNo || 'Not provided'}</p>
+          </div>
+          <div className="w-full rounded-xl border border-border bg-background p-4 text-left">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <Building2 className="h-3.5 w-3.5" />
+              School
+            </div>
+            <p className={`text-sm ${currentUser.school ? 'text-foreground' : 'text-muted-foreground'}`}>{currentUser.school || 'Not provided'}</p>
           </div>
           <div className="w-full rounded-xl border border-border bg-background p-4 text-left">
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -277,6 +334,38 @@ const UserProfilePage = () => {
                     className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
+                <div>
+                  <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    <Hash className="h-3.5 w-3.5" />
+                    Reg No
+                  </label>
+                  <input
+                    type="text"
+                    value={profileData.regNo}
+                    onChange={(e) => setProfileData((prev) => ({ ...prev, regNo: e.target.value }))}
+                    maxLength={50}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  School
+                </label>
+                <select
+                  value={profileData.school}
+                  onChange={(e) => setProfileData((prev) => ({ ...prev, school: e.target.value as School | '' }))}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Select your school</option>
+                  {schoolOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

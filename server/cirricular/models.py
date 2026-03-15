@@ -26,10 +26,19 @@ class User(AbstractUser):
         ('user', 'User'),
         ('admin', 'Admin'),
     )
+    SCHOOL_CHOICES = (
+        ('SPAS', 'SPAS'),
+        ('Education', 'Education'),
+        ('Health Science', 'Health Science'),
+        ('Bussiness', 'Bussiness'),
+        ('Engineering', 'Engineering'),
+    )
 
     email = models.EmailField(unique=True)
     username = models.CharField(max_length=150, unique=True)
     name = models.CharField(max_length=255)
+    regNo = models.CharField(max_length=50, unique=True)
+    school = models.CharField(max_length=50, choices=SCHOOL_CHOICES)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user') 
     avatar = models.URLField(blank=True, null=True, max_length=500)
     bio = models.TextField(blank=True, null=True)

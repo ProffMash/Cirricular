@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import type { School } from '@/types';
 import { GraduationCap, Eye, EyeOff, UserPlus } from 'lucide-react';
+
+const schoolOptions: School[] = ['SPAS', 'Education', 'Health Science', 'Bussiness', 'Engineering'];
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register } = useAuthStore();
   const [name, setName] = useState('');
+  const [regNo, setRegNo] = useState('');
+  const [school, setSchool] = useState<School | ''>('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,12 +21,16 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !regNo || !school || !email || !password || !confirmPassword) {
       setError('Please fill in all fields.');
       return;
     }
     if (name.trim().length < 2) {
       setError('Name must be at least 2 characters.');
+      return;
+    }
+    if (regNo.trim().length < 3) {
+      setError('Reg No must be at least 3 characters.');
       return;
     }
     if (password.length < 6) {
@@ -34,7 +43,7 @@ const RegisterPage = () => {
     }
     setIsLoading(true);
     setError('');
-    const result = await register(name.trim(), email.toLowerCase(), password);
+    const result = await register(name.trim(), email.toLowerCase(), password, regNo.trim(), school);
     setIsLoading(false);
     if (!result.success) {
       setError(result.error || 'Registration failed.');
@@ -68,6 +77,32 @@ const RegisterPage = () => {
                 maxLength={100}
                 className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Reg No</label>
+              <input
+                type="text"
+                value={regNo}
+                onChange={(e) => setRegNo(e.target.value)}
+                placeholder="2026-ENG-001"
+                maxLength={50}
+                className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">School</label>
+              <select
+                value={school}
+                onChange={(e) => setSchool(e.target.value as School | '')}
+                className="w-full px-4 py-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              >
+                <option value="">Select your school</option>
+                {schoolOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">Email Address</label>

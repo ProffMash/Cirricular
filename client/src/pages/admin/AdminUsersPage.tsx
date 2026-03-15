@@ -54,7 +54,9 @@ const AdminUsersPage = () => {
       (
         !search ||
         u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.email.toLowerCase().includes(search.toLowerCase())
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        (u.regNo || '').toLowerCase().includes(search.toLowerCase()) ||
+        u.school.toLowerCase().includes(search.toLowerCase())
       )
   );
 
@@ -135,7 +137,7 @@ const AdminUsersPage = () => {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder="Search by name, email, reg no, or school..."
           className="w-full pl-9 pr-9 py-2.5 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm max-w-sm"
         />
         {search && (
@@ -158,6 +160,8 @@ const AdminUsersPage = () => {
               <thead>
                 <tr className="bg-muted/50 border-b border-border text-left">
                   <th className="px-4 py-3 font-medium text-muted-foreground">User</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Reg No</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">School</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Status</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Joined</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Registered On</th>
@@ -195,6 +199,12 @@ const AdminUsersPage = () => {
                             <p className="text-xs text-muted-foreground">{user.email}</p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                        {user.regNo || <span className="text-xs text-muted-foreground">Not provided</span>}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
+                        {user.school}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         <StatusBadge label={(user.isActive ?? true) ? 'active' : 'inactive'} />

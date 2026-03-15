@@ -14,8 +14,19 @@ class UserSerializer(serializers.ModelSerializer):
 
 	class Meta:
 		model = User
-		fields = ['id', 'email', 'username', 'name', 'role', 'avatar', 'bio', 'phone', 'joinedDate', 'isActive', 'latestRegistrationDate']
+		fields = ['id', 'email', 'username', 'name', 'regNo', 'school', 'role', 'avatar', 'bio', 'phone', 'joinedDate', 'isActive', 'latestRegistrationDate']
 		read_only_fields = ['joinedDate']
+
+	def validate_regNo(self, value):
+		reg_no = value.strip()
+		if not reg_no:
+			raise serializers.ValidationError('Registration number is required')
+		return reg_no
+
+	def validate_school(self, value):
+		if value not in dict(User.SCHOOL_CHOICES):
+			raise serializers.ValidationError('Select a valid school')
+		return value
   
 class EventSerializer(serializers.ModelSerializer):
 	class Meta:
@@ -37,12 +48,14 @@ class RegistrationSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
 	password = serializers.CharField(write_only=True, required=True)
 	username = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+	regNo = serializers.CharField(required=True, allow_blank=False)
+	school = serializers.ChoiceField(choices=User.SCHOOL_CHOICES, required=True)
 
 	class Meta:
 		model = User
 		# allow optional username and vehicle info during registration
 		# Note: do NOT expose `role` here so clients cannot set it during signup.
-		fields = ['email', 'username', 'name', 'password', 'phone', 'avatar']
+		fields = ['email', 'username', 'name', 'password', 'phone', 'avatar', 'regNo', 'school']
 
 	def create(self, validated_data):
 		# Ensure a username is provided to the user manager; derive from email if absent
@@ -61,11 +74,24 @@ class RegisterSerializer(serializers.ModelSerializer):
 			username=username,
 			password=validated_data['password'],
 			name=validated_data.get('name', ''),
+			regNo=validated_data['regNo'].strip(),
+			school=validated_data['school'],
 			role='user',
 			phone=validated_data.get('phone', ''),
 			avatar=validated_data.get('avatar', None),
 		)
 		return user
+
+	def validate_regNo(self, value):
+		reg_no = value.strip()
+		if not reg_no:
+			raise serializers.ValidationError('Registration number is required')
+		return reg_no
+
+	def validate_school(self, value):
+		if value not in dict(User.SCHOOL_CHOICES):
+			raise serializers.ValidationError('Select a valid school')
+		return value
 
 	def validate_password(self, value):
 		# ensure password is provided and has a reasonable minimum length

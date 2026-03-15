@@ -1,11 +1,13 @@
 import api, { cachedGet, invalidateCacheFor } from './apiClient';
-import { User } from '@/types';
+import { User, School } from '@/types';
 
 export interface UserFromApi {
   id: number;
   email: string;
   username: string;
   name: string;
+  regNo: string | null;
+  school: School;
   role: 'admin' | 'user';
   isActive?: boolean;
   latestRegistrationDate?: string | null;

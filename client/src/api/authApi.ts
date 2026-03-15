@@ -1,4 +1,5 @@
 import api from './apiClient';
+import type { School } from '@/types';
 
 // role can be 'admin' or 'user'
 export interface RegisterPayload {
@@ -6,6 +7,8 @@ export interface RegisterPayload {
   username?: string;
   password: string;
   name?: string;
+  regNo: string;
+  school: School;
   phone?: string;
   avatar?: string;
 }
@@ -20,6 +23,8 @@ export interface LoginResponse {
   email: string;
   username: string;
   name: string;
+  regNo: string | null;
+  school: School;
   role: 'admin' | 'user';
   isActive?: boolean;
   avatar: string | null;

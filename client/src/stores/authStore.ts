@@ -10,8 +10,8 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; role?: UserRole; error?: string }>;
   logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'bio' | 'phone' | 'avatar'>>) => void;
+  register: (name: string, email: string, password: string, regNo: string, school: User['school']) => Promise<{ success: boolean; error?: string }>;
+  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'bio' | 'phone' | 'avatar' | 'regNo' | 'school'>>) => void;
   setUser: (user: User, token: string) => void;
 }
 
@@ -20,6 +20,8 @@ const mapLoginResponseToUser = (res: LoginResponse): User => ({
   email: res.email,
   username: res.username,
   name: res.name,
+  regNo: res.regNo,
+  school: res.school || 'SPAS',
   role: res.role,
   isActive: res.isActive,
   avatar: res.avatar,
@@ -53,13 +55,15 @@ export const useAuthStore = create<AuthState>()(
         set({ currentUser: null, token: null, isAuthenticated: false });
       },
 
-  register: async (name, email, password) => {
+  register: async (name, email, password, regNo, school) => {
     try {
-      await registerUser({ email, password, name });
+    await registerUser({ email, password, name, regNo, school });
       return { success: true };
     } catch (err: any) {
       const message =
         err.response?.data?.email?.[0] ||
+        err.response?.data?.regNo?.[0] ||
+      err.response?.data?.school?.[0] ||
         err.response?.data?.password?.[0] ||
         err.response?.data?.detail ||
         'Registration failed.';

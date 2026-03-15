@@ -2,12 +2,15 @@ export type UserRole = 'user' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 export type RegistrationStatus = 'confirmed' | 'cancelled';
 export type EventCategory = 'Sports' | 'Arts' | 'Academic' | 'Tech' | 'Cultural' | 'Social';
+export type School = 'SPAS' | 'Education' | 'Health Science' | 'Bussiness' | 'Engineering';
 
 export interface User {
   id: number;
   email: string;
   username: string;
   name: string;
+  regNo: string | null;
+  school: School;
   role: UserRole;
   isActive?: boolean;
   latestRegistrationDate?: string | null;
