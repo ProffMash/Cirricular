@@ -267,9 +267,9 @@ const UserProfilePage = () => {
       </div>
 
       {isEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-4 sm:items-center sm:py-0">
           <div className="fixed inset-0 bg-black/80" onClick={closeEditModal} />
-          <div className="relative z-50 mx-4 w-full max-w-lg rounded-2xl border border-border bg-background p-6 shadow-lg">
+          <div className="relative z-50 mx-4 w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Edit Profile</h2>
@@ -403,11 +403,11 @@ const UserProfilePage = () => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="sticky bottom-0 -mx-6 mt-2 flex flex-col-reverse gap-3 border-t border-border bg-background px-6 pb-1 pt-4 sm:mx-0 sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-2">
                 <button
                   type="button"
                   onClick={closeEditModal}
-                  className="rounded-lg border border-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                  className="w-full rounded-lg border border-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -415,7 +415,7 @@ const UserProfilePage = () => {
                   type="button"
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                   {saving ? 'Saving...' : 'Save Changes'}
