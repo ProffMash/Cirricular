@@ -46,6 +46,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    'cirricular.onrender.com',
+    'curricular-rho.vercel.app',
 ]
 
 # CORS Settings - Fixed the frontend domain typo
@@ -53,6 +55,8 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
+    'https://cirricular.onrender.com',
+    'https://curricular-rho.vercel.app',
 ]
 
 # Additional CORS settings for preflight requests
@@ -80,6 +84,8 @@ CORS_ALLOW_HEADERS = [
 # CSRF settings to match CORS
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:5173',
+    'https://cirricular.onrender.com',
+    'https://curricular-rho.vercel.app',
 ]
 
 # Application definition
