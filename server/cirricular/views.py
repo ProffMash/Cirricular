@@ -105,6 +105,14 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = Registration.objects.all()
     serializer_class = RegistrationSerializer
 
+    def _invalidate_event_cache(self, event_id=None):
+        try:
+            cache.delete('events_list')
+            if event_id:
+                cache.delete(f'event_{event_id}')
+        except Exception:
+            pass
+
     def list(self, request, *args, **kwargs):
         if not request.query_params:
             cached = cache.get('registrations_list')
@@ -144,7 +152,24 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        self._invalidate_event_cache(serializer.instance.event_id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        self._invalidate_event_cache(serializer.instance.event_id)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        event_id = instance.event_id
+        self.perform_destroy(instance)
+        self._invalidate_event_cache(event_id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RegisterView(APIView):

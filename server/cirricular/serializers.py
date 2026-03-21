@@ -29,6 +29,11 @@ class UserSerializer(serializers.ModelSerializer):
 		return value
   
 class EventSerializer(serializers.ModelSerializer):
+	registered_count = serializers.SerializerMethodField()
+
+	def get_registered_count(self, obj):
+		return obj.registration_set.filter(status=Registration.RegistrationStatus.CONFIRMED).count()
+
 	class Meta:
 		model = Event
 		fields = [

@@ -10,11 +10,12 @@ import {
   mapEventFromApi,
   mapEventToApi,
 } from '@/api/eventsApi';
+import { fetchRegistrations } from '@/api/registrationApi';
 import StatusBadge from '@/components/shared/StatusBadge';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
 import { CalendarDays, Plus, Pencil, Trash2, Search, X, Loader2 } from 'lucide-react';
-import { EventCategory, Event } from '@/types';
+import { EventCategory, Event, Registration } from '@/types';
 import { formatDateDDMMYY } from '@/utils/date';
 
 const CATEGORIES: EventCategory[] = ['Sports', 'Arts', 'Academic', 'Tech', 'Cultural', 'Social'];
@@ -33,6 +34,7 @@ type EventFormValues = z.infer<typeof eventSchema>;
 
 const AdminEventsPage = () => {
   const [events, setEvents] = useState<Event[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
@@ -43,10 +45,12 @@ const AdminEventsPage = () => {
 
   const loadEvents = async () => {
     try {
-      const data = await fetchEvents();
-      setEvents(data.map(mapEventFromApi));
+      const [eventsData, registrationsData] = await Promise.all([fetchEvents(), fetchRegistrations()]);
+      setEvents(eventsData.map(mapEventFromApi));
+      setRegistrations(registrationsData);
     } catch {
       setEvents([]);
+      setRegistrations([]);
     } finally {
       setLoading(false);
     }
@@ -62,6 +66,11 @@ const AdminEventsPage = () => {
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase())
   );
+
+  const getRegisteredCount = (eventId: string) => {
+    const confirmedCount = registrations.filter((r) => r.eventId === eventId && r.status === 'confirmed').length;
+    return Number.isFinite(confirmedCount) ? confirmedCount : 0;
+  };
 
   const {
     register,
@@ -189,7 +198,8 @@ const AdminEventsPage = () => {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((event) => {
-                  const pct = Math.round((event.registeredCount / event.capacity) * 100);
+                  const registeredCount = getRegisteredCount(event.id);
+                  const pct = event.capacity > 0 ? Math.min(100, Math.round((registeredCount / event.capacity) * 100)) : 0;
                   return (
                     <tr key={event.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium text-foreground max-w-[200px]">
@@ -204,7 +214,7 @@ const AdminEventsPage = () => {
                           <div className="h-1.5 w-12 bg-muted rounded-full hidden sm:block overflow-hidden">
                             <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-muted-foreground">{event.registeredCount}</span>
+                          <span className="text-muted-foreground">{registeredCount} / {event.capacity}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
