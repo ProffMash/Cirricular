@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
-import { ClipboardList, Download, Search, X, Loader2 } from 'lucide-react';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { ClipboardList, Download, Search, X, Loader2, UserX } from 'lucide-react';
 import { fetchUsers } from '@/api/usersApi';
 import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
-import { fetchRegistrations } from '@/api/registrationApi';
+import { adminDeregisterRegistration, fetchRegistrations } from '@/api/registrationApi';
 import { User, Event, Registration } from '@/types';
 import { formatDateDDMMYY } from '@/utils/date';
 
@@ -16,6 +17,8 @@ const AdminRegistrationsPage = () => {
   const [eventFilter, setEventFilter] = useState('all');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deregisterTarget, setDeregisterTarget] = useState<string | null>(null);
+  const [deregisteringId, setDeregisteringId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -80,6 +83,37 @@ const AdminRegistrationsPage = () => {
     a.download = `registrations-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDeregister = async () => {
+    if (!deregisterTarget) return;
+
+    try {
+      setDeregisteringId(deregisterTarget);
+      await adminDeregisterRegistration(Number(deregisterTarget));
+
+      const currentReg = registrations.find((r) => r.id === deregisterTarget);
+      setRegistrations((prev) =>
+        prev.map((r) =>
+          r.id === deregisterTarget ? { ...r, status: 'cancelled' } : r
+        )
+      );
+
+      if (currentReg) {
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === currentReg.eventId
+              ? { ...e, registeredCount: Math.max(0, e.registeredCount - 1) }
+              : e
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Failed to deregister user', error);
+    } finally {
+      setDeregisteringId(null);
+      setDeregisterTarget(null);
+    }
   };
 
   if (loading) {
@@ -157,6 +191,7 @@ const AdminRegistrationsPage = () => {
                   <th className="px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Event Date</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Registered</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -195,6 +230,24 @@ const AdminRegistrationsPage = () => {
                         {formatDateDDMMYY(reg.registeredAt)}
                       </td>
                       <td className="px-4 py-3"><StatusBadge label={reg.status} /></td>
+                      <td className="px-4 py-3 text-right">
+                        {reg.status === 'confirmed' ? (
+                          <button
+                            onClick={() => setDeregisterTarget(reg.id)}
+                            disabled={deregisteringId === reg.id}
+                            className="inline-flex items-center gap-1.5 text-xs text-destructive border border-destructive/30 hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {deregisteringId === reg.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <UserX className="h-3.5 w-3.5" />
+                            )}
+                            Deregister
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -203,6 +256,16 @@ const AdminRegistrationsPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deregisterTarget}
+        onOpenChange={(open) => !open && setDeregisterTarget(null)}
+        title="Deregister User"
+        description="This will cancel the user's registration for this event. Continue?"
+        confirmLabel="Yes, Deregister"
+        onConfirm={handleDeregister}
+        variant="destructive"
+      />
     </div>
   );
 };

@@ -65,6 +65,14 @@ export async function cancelRegistration(id: number): Promise<Registration> {
   return updateRegistration(id, { status: 'cancelled' });
 }
 
+// Admin-only deregistration endpoint
+export async function adminDeregisterRegistration(id: number): Promise<Registration> {
+  invalidateCacheFor('registrations/');
+  invalidateCacheFor(`registrations/${id}/`);
+  const response = await api.post<RegistrationFromApi>(`registrations/${id}/deregister/`);
+  return mapRegistrationFromApi(response.data);
+}
+
 export default {
   fetchRegistrations,
   fetchRegistration,
@@ -72,5 +80,6 @@ export default {
   updateRegistration,
   deleteRegistration,
   cancelRegistration,
+  adminDeregisterRegistration,
   mapRegistrationFromApi,
 };
