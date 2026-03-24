@@ -13,8 +13,10 @@ type UserTab = 'user' | 'admin';
 
 const AdminUsersPage = () => {
   const { toast } = useToast();
+  const PAGE_SIZE = 10;
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<UserTab>('user');
+  const [currentPage, setCurrentPage] = useState(1);
   const [updatingUserId, setUpdatingUserId] = useState<number | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -59,6 +61,20 @@ const AdminUsersPage = () => {
         u.school.toLowerCase().includes(search.toLowerCase())
       )
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeTab]);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedUsers = users.slice(
+    (safeCurrentPage - 1) * PAGE_SIZE,
+    safeCurrentPage * PAGE_SIZE
+  );
+
+  const startIndex = users.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
+  const endIndex = Math.min(safeCurrentPage * PAGE_SIZE, users.length);
 
   const handleToggleUserActive = async (user: User) => {
     const currentState = user.isActive ?? true;
@@ -170,7 +186,7 @@ const AdminUsersPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {users.map((user) => {
+                {paginatedUsers.map((user) => {
                   const userRegs = registrations.filter((registration) => registration.userId === String(user.id));
                   const activeRegs = userRegs.filter((r) => r.status === 'confirmed');
                   const fallbackLatestRegistrationDate = userRegs.length > 0
@@ -287,6 +303,33 @@ const AdminUsersPage = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border bg-muted/20">
+            <p className="text-xs text-muted-foreground">
+              Showing {startIndex}-{endIndex} of {users.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={safeCurrentPage === 1}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-muted-foreground">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       )}

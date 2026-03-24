@@ -10,11 +10,13 @@ import { User, Event, Registration } from '@/types';
 import { formatDateDDMMYY } from '@/utils/date';
 
 const AdminRegistrationsPage = () => {
+  const PAGE_SIZE = 7;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
   const [eventFilter, setEventFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [deregisterTarget, setDeregisterTarget] = useState<string | null>(null);
@@ -59,6 +61,20 @@ const AdminRegistrationsPage = () => {
   const sorted = [...filtered].sort(
     (a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime()
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, eventFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedRegistrations = sorted.slice(
+    (safeCurrentPage - 1) * PAGE_SIZE,
+    safeCurrentPage * PAGE_SIZE
+  );
+
+  const startIndex = sorted.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
+  const endIndex = Math.min(safeCurrentPage * PAGE_SIZE, sorted.length);
 
   const exportCSV = () => {
     const headers = ['Registration ID', 'Student Name', 'Email', 'Event Title', 'Date', 'Status', 'Registered At'];
@@ -195,7 +211,7 @@ const AdminRegistrationsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {sorted.map((reg) => {
+                {paginatedRegistrations.map((reg) => {
                   const user = users.find((u) => String(u.id) === reg.userId);
                   const event = events.find((e) => e.id === reg.eventId);
                   return (
@@ -253,6 +269,33 @@ const AdminRegistrationsPage = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border bg-muted/20">
+            <p className="text-xs text-muted-foreground">
+              Showing {startIndex}-{endIndex} of {sorted.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={safeCurrentPage === 1}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span className="text-xs text-muted-foreground">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={safeCurrentPage === totalPages}
+                className="px-3 py-1.5 text-xs rounded-lg border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       )}
