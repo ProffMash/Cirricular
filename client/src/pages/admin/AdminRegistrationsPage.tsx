@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
-import { ClipboardList, Download, Search, X, Loader2, UserX } from 'lucide-react';
+import { ClipboardList, Download, Search, X, Loader2, UserX, Trash2 } from 'lucide-react';
 import { fetchUsers } from '@/api/usersApi';
 import { fetchEvents, mapEventFromApi } from '@/api/eventsApi';
-import { adminDeregisterRegistration, fetchRegistrations } from '@/api/registrationApi';
+import { adminDeregisterRegistration, deleteRegistration, fetchRegistrations } from '@/api/registrationApi';
 import { User, Event, Registration } from '@/types';
 import { formatDateDDMMYY } from '@/utils/date';
 
@@ -23,6 +23,8 @@ const AdminRegistrationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [deregisterTarget, setDeregisterTarget] = useState<string | null>(null);
   const [deregisteringId, setDeregisteringId] = useState<string | null>(null);
+  const [softDeleteTarget, setSoftDeleteTarget] = useState<string | null>(null);
+  const [softDeletingId, setSoftDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,6 +136,21 @@ const AdminRegistrationsPage = () => {
     } finally {
       setDeregisteringId(null);
       setDeregisterTarget(null);
+    }
+  };
+
+  const handleSoftDelete = async () => {
+    if (!softDeleteTarget) return;
+
+    try {
+      setSoftDeletingId(softDeleteTarget);
+      await deleteRegistration(Number(softDeleteTarget));
+      setRegistrations((prev) => prev.filter((r) => r.id !== softDeleteTarget));
+    } catch (error) {
+      console.error('Failed to delete registration', error);
+    } finally {
+      setSoftDeletingId(null);
+      setSoftDeleteTarget(null);
     }
   };
 
@@ -282,6 +299,19 @@ const AdminRegistrationsPage = () => {
                             )}
                             Deregister
                           </button>
+                        ) : activeTab === 'cancelled' ? (
+                          <button
+                            onClick={() => setSoftDeleteTarget(reg.id)}
+                            disabled={softDeletingId === reg.id}
+                            className="inline-flex items-center gap-1.5 text-xs text-destructive border border-destructive/30 hover:bg-destructive/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {softDeletingId === reg.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                            Delete
+                          </button>
                         ) : (
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
@@ -329,6 +359,16 @@ const AdminRegistrationsPage = () => {
         description="This will cancel the user's registration for this event. Continue?"
         confirmLabel="Yes, Deregister"
         onConfirm={handleDeregister}
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={!!softDeleteTarget}
+        onOpenChange={(open) => !open && setSoftDeleteTarget(null)}
+        title="Delete Registration"
+        description="This will remove this cancelled registration from the list. Continue?"
+        confirmLabel="Yes, Delete"
+        onConfirm={handleSoftDelete}
         variant="destructive"
       />
     </div>

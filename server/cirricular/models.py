@@ -102,6 +102,8 @@ class Registration(models.Model):
     event = models.ForeignKey('Event', on_delete=models.CASCADE)
     registered_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=RegistrationStatus.choices, default=RegistrationStatus.CONFIRMED)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.user} - {self.event} ({self.status})"

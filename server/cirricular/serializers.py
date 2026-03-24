@@ -9,7 +9,7 @@ class UserSerializer(serializers.ModelSerializer):
 	latestRegistrationDate = serializers.SerializerMethodField()
 
 	def get_latestRegistrationDate(self, obj):
-		latest = obj.registration_set.order_by('-registered_at').first()
+		latest = obj.registration_set.filter(is_deleted=False).order_by('-registered_at').first()
 		return latest.registered_at if latest else None
 
 	class Meta:
@@ -32,7 +32,10 @@ class EventSerializer(serializers.ModelSerializer):
 	registered_count = serializers.SerializerMethodField()
 
 	def get_registered_count(self, obj):
-		return obj.registration_set.filter(status=Registration.RegistrationStatus.CONFIRMED).count()
+		return obj.registration_set.filter(
+			status=Registration.RegistrationStatus.CONFIRMED,
+			is_deleted=False,
+		).count()
 
 	class Meta:
 		model = Event
