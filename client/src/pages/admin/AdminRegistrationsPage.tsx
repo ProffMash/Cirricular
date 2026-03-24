@@ -9,13 +9,15 @@ import { adminDeregisterRegistration, fetchRegistrations } from '@/api/registrat
 import { User, Event, Registration } from '@/types';
 import { formatDateDDMMYY } from '@/utils/date';
 
+type RegistrationTab = 'confirmed' | 'cancelled';
+
 const AdminRegistrationsPage = () => {
   const PAGE_SIZE = 7;
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'cancelled'>('all');
   const [eventFilter, setEventFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState<RegistrationTab>('confirmed');
   const [currentPage, setCurrentPage] = useState(1);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,32 +55,35 @@ const AdminRegistrationsPage = () => {
       user?.name.toLowerCase().includes(search.toLowerCase()) ||
       event?.title.toLowerCase().includes(search.toLowerCase()) ||
       user?.email.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || reg.status === statusFilter;
     const matchesEvent = eventFilter === 'all' || reg.eventId === eventFilter;
-    return matchesSearch && matchesStatus && matchesEvent;
+    return matchesSearch && matchesEvent;
   });
 
-  const sorted = [...filtered].sort(
+  const sortedFiltered = [...filtered].sort(
     (a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime()
   );
 
+  const confirmedRegistrations = sortedFiltered.filter((reg) => reg.status === 'confirmed');
+  const cancelledRegistrations = sortedFiltered.filter((reg) => reg.status === 'cancelled');
+  const tabRegistrations = activeTab === 'confirmed' ? confirmedRegistrations : cancelledRegistrations;
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter, eventFilter]);
+  }, [search, eventFilter, activeTab]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(tabRegistrations.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
-  const paginatedRegistrations = sorted.slice(
+  const paginatedRegistrations = tabRegistrations.slice(
     (safeCurrentPage - 1) * PAGE_SIZE,
     safeCurrentPage * PAGE_SIZE
   );
 
-  const startIndex = sorted.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
-  const endIndex = Math.min(safeCurrentPage * PAGE_SIZE, sorted.length);
+  const startIndex = tabRegistrations.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE + 1;
+  const endIndex = Math.min(safeCurrentPage * PAGE_SIZE, tabRegistrations.length);
 
   const exportCSV = () => {
     const headers = ['Registration ID', 'Student Name', 'Email', 'Event Title', 'Date', 'Status', 'Registered At'];
-    const rows = sorted.map((reg) => {
+    const rows = sortedFiltered.map((reg) => {
       const user = users.find((u) => String(u.id) === reg.userId);
       const event = events.find((e) => e.id === reg.eventId);
       return [
@@ -145,7 +150,7 @@ const AdminRegistrationsPage = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">All Registrations</h1>
-          <p className="text-sm text-muted-foreground mt-1">{sorted.length} of {registrations.length} registrations</p>
+          <p className="text-sm text-muted-foreground mt-1">{tabRegistrations.length} {activeTab} of {registrations.length} registrations</p>
         </div>
         <button
           onClick={exportCSV}
@@ -156,7 +161,33 @@ const AdminRegistrationsPage = () => {
         </button>
       </div>
 
-      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-1.5 w-fit">
+        <button
+          onClick={() => setActiveTab('confirmed')}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'confirmed'
+              ? 'bg-background text-foreground shadow-sm border border-border'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          type="button"
+        >
+          Confirmed
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{confirmedRegistrations.length}</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('cancelled')}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            activeTab === 'cancelled'
+              ? 'bg-background text-foreground shadow-sm border border-border'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          type="button"
+        >
+          Cancelled
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{cancelledRegistrations.length}</span>
+        </button>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -174,15 +205,6 @@ const AdminRegistrationsPage = () => {
           )}
         </div>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          className="px-3 py-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-        >
-          <option value="all">All Statuses</option>
-          <option value="confirmed">Confirmed</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-        <select
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
           className="px-3 py-2.5 rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm max-w-xs"
@@ -194,7 +216,7 @@ const AdminRegistrationsPage = () => {
         </select>
       </div>
 
-      {sorted.length === 0 ? (
+      {tabRegistrations.length === 0 ? (
         <EmptyState icon={ClipboardList} title="No registrations found" description="Try adjusting your filters." />
       ) : (
         <div className="bg-card border border-border rounded-xl shadow-card overflow-hidden">
@@ -273,7 +295,7 @@ const AdminRegistrationsPage = () => {
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-border bg-muted/20">
             <p className="text-xs text-muted-foreground">
-              Showing {startIndex}-{endIndex} of {sorted.length}
+              Showing {startIndex}-{endIndex} of {tabRegistrations.length}
             </p>
             <div className="flex items-center gap-2">
               <button
